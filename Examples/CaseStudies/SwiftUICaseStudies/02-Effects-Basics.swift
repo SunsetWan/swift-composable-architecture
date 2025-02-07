@@ -63,18 +63,8 @@ let effectsBasicsReducer = Reducer<
 //      return .none
     // Return an effect that fetches a number fact from the API and returns the
     // value back to the reducer's `numberFactResponse` action.
-      return Effect.task { [count = state.count] in
-//          do {
-//              let ret = try await environment.fact.fetchAsync(count)
-//              return .numberFactResponse(.success(ret))
-//          } catch {
-//              // It's cumbersome to handle untyped error
-//              return .numberFactResponse(.failure(error as! FactClient.Failure))
-//          }
-          let taskResult: TaskResult<String> = await .init {
-              try await environment.fact.fetchAsync(count)
-          }
-          return .numberFactResponse(taskResult)
+      return .task { [count = state.count] in
+          .numberFactResponse(await TaskResult { try await environment.fact.fetchAsync(count) })
       }
 //    return environment.fact.fetch(state.count)
 //      .receive(on: environment.mainQueue)

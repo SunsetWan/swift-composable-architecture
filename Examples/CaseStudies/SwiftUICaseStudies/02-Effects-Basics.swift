@@ -29,7 +29,10 @@ struct EffectsBasicsState: Equatable {
 
 enum EffectsBasicsAction: Equatable {
     case decrementButtonTapped
+    case decrementDelayResponse
+
     case incrementButtonTapped
+
     case numberFactButtonTapped
     case numberFactResponse(TaskResult<String>)
 }
@@ -46,40 +49,50 @@ let effectsBasicsReducer = Reducer<
   EffectsBasicsAction,
   EffectsBasicsEnvironment
 > { state, action, environment in
-  switch action {
-  case .decrementButtonTapped:
-    state.count -= 1
-    state.numberFact = nil
-    return .none
+    switch action {
+    case .decrementButtonTapped:
+        state.count -= 1
+        state.numberFact = nil
+        return state.count >= 0
+        ? .none
+        : .task {
+            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
+            return .decrementDelayResponse
+        }
 
-  case .incrementButtonTapped:
-    state.count += 1
-    state.numberFact = nil
-    return .none
+    case .incrementButtonTapped:
+        state.count += 1
+        state.numberFact = nil
+        return .none
 
-  case .numberFactButtonTapped:
-    state.isNumberFactRequestInFlight = true
-    state.numberFact = nil
-//      return .none
-    // Return an effect that fetches a number fact from the API and returns the
-    // value back to the reducer's `numberFactResponse` action.
-      return .task { [count = state.count] in
-          .numberFactResponse(await TaskResult { try await environment.fact.fetchAsync(count) })
-      }
-//    return environment.fact.fetch(state.count)
-//      .receive(on: environment.mainQueue)
-//      .catchToEffect(EffectsBasicsAction.numberFactResponse)
+    case .numberFactButtonTapped:
+        state.isNumberFactRequestInFlight = true
+        state.numberFact = nil
+        //      return .none
+        // Return an effect that fetches a number fact from the API and returns the
+        // value back to the reducer's `numberFactResponse` action.
+        return .task { [count = state.count] in
+                .numberFactResponse(await TaskResult { try await environment.fact.fetchAsync(count) })
+        }
+        //    return environment.fact.fetch(state.count)
+        //      .receive(on: environment.mainQueue)
+        //      .catchToEffect(EffectsBasicsAction.numberFactResponse)
 
-  case let .numberFactResponse(.success(response)):
-    state.isNumberFactRequestInFlight = false
-    state.numberFact = response
-    return .none
+    case let .numberFactResponse(.success(response)):
+        state.isNumberFactRequestInFlight = false
+        state.numberFact = response
+        return .none
 
-  case .numberFactResponse(.failure):
-    // NB: This is where we could handle the error is some way, such as showing an alert.
-    state.isNumberFactRequestInFlight = false
-    return .none
-  }
+    case .numberFactResponse(.failure):
+        // NB: This is where we could handle the error is some way, such as showing an alert.
+        state.isNumberFactRequestInFlight = false
+        return .none
+    case .decrementDelayResponse:
+        if state.count < 0 {
+            state.count += 1
+        }
+        return .none
+    }
 }
 
 // MARK: - Feature view

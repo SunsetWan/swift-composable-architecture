@@ -36,7 +36,7 @@ class EffectsBasicsTests: XCTestCase {
         store.send(.numberFactButtonTapped) {
             $0.isNumberFactRequestInFlight = true
         }
-//        _ = XCTWaiter.wait(for: [.init()], timeout: 0.1)
+        _ = XCTWaiter.wait(for: [.init()], timeout: 0.1)
         store.receive(.numberFactResponse(.success("1 is a good number Brent"))) {
             $0.isNumberFactRequestInFlight = false
             $0.numberFact = "1 is a good number Brent"
@@ -50,7 +50,8 @@ class EffectsBasicsTests: XCTestCase {
             environment: .unimplemented
         )
 
-        store.environment.fact.fetch = { _ in Effect(error: FactClient.Failure()) }
+//        store.environment.fact.fetch = { _ in Effect(error: FactClient.Failure()) }
+        store.environment.fact.fetchAsync = { _ in throw FactClient.Failure() }
         store.environment.mainQueue = .immediate
 
         store.send(.incrementButtonTapped) {
@@ -59,6 +60,7 @@ class EffectsBasicsTests: XCTestCase {
         store.send(.numberFactButtonTapped) {
             $0.isNumberFactRequestInFlight = true
         }
+        _ = XCTWaiter.wait(for: [.init()], timeout: 0.1)
         store.receive(.numberFactResponse(.failure(FactClient.Failure()))) {
             $0.isNumberFactRequestInFlight = false
         }

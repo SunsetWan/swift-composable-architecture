@@ -19,6 +19,15 @@ class EffectsBasicsTests: XCTestCase {
         }
     }
 
+    /*
+     Use `_ = XCTWaiter.wait(for: [.init()], timeout: 0.1)` to wait for thread hop.
+     It's not good:
+      - Slow down the speed of running UT
+      - Make testing code awkward
+
+     Test Suite 'Selected tests' passed at 2025-02-07 14:54:26.322.
+          Executed 1000 tests, with 0 failures (0 unexpected) in 104.097 (104.619) seconds
+     */
     func testNumberFact_HappyPath() {
         let store = TestStore(
             initialState: EffectsBasicsState(),

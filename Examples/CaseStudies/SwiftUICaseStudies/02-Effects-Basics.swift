@@ -28,10 +28,10 @@ struct EffectsBasicsState: Equatable {
 }
 
 enum EffectsBasicsAction: Equatable {
-  case decrementButtonTapped
-  case incrementButtonTapped
-  case numberFactButtonTapped
-  case numberFactResponse(Result<String, FactClient.Failure>)
+    case decrementButtonTapped
+    case incrementButtonTapped
+    case numberFactButtonTapped
+    case numberFactResponse(TaskResult<String>)
 }
 
 struct EffectsBasicsEnvironment {
@@ -64,13 +64,17 @@ let effectsBasicsReducer = Reducer<
     // Return an effect that fetches a number fact from the API and returns the
     // value back to the reducer's `numberFactResponse` action.
       return Effect.task { [count = state.count] in
-          do {
-              let ret = try await environment.fact.fetchAsync(count)
-              return .numberFactResponse(.success(ret))
-          } catch {
-              // It's cumbersome to handle untyped error
-              return .numberFactResponse(.failure(error as! FactClient.Failure))
+//          do {
+//              let ret = try await environment.fact.fetchAsync(count)
+//              return .numberFactResponse(.success(ret))
+//          } catch {
+//              // It's cumbersome to handle untyped error
+//              return .numberFactResponse(.failure(error as! FactClient.Failure))
+//          }
+          let taskResult: TaskResult<String> = await .init {
+              try await environment.fact.fetchAsync(count)
           }
+          return .numberFactResponse(taskResult)
       }
 //    return environment.fact.fetch(state.count)
 //      .receive(on: environment.mainQueue)

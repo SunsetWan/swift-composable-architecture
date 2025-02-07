@@ -60,6 +60,7 @@ let effectsBasicsReducer = Reducer<
   case .numberFactButtonTapped:
     state.isNumberFactRequestInFlight = true
     state.numberFact = nil
+//      return .none
     // Return an effect that fetches a number fact from the API and returns the
     // value back to the reducer's `numberFactResponse` action.
       return Effect.task { [count = state.count] in

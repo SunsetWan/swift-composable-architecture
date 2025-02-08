@@ -49,6 +49,7 @@ let effectsBasicsReducer = Reducer<
   EffectsBasicsAction,
   EffectsBasicsEnvironment
 > { state, action, environment in
+    enum DelayID {}
     switch action {
     case .decrementButtonTapped:
         state.count -= 1
@@ -59,11 +60,14 @@ let effectsBasicsReducer = Reducer<
             try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
             return .decrementDelayResponse
         }
+        .cancellable(id: DelayID.self)
 
     case .incrementButtonTapped:
         state.count += 1
         state.numberFact = nil
-        return .none
+        return state.count >= 0
+        ? .cancel(id: DelayID.self)
+        : .none
 
     case .numberFactButtonTapped:
         state.isNumberFactRequestInFlight = true
@@ -156,7 +160,7 @@ struct EffectsBasicsView_Previews: PreviewProvider {
       EffectsBasicsView(
         store: Store(
           initialState: EffectsBasicsState(),
-          reducer: effectsBasicsReducer,
+          reducer: effectsBasicsReducer.debug(),
           environment: EffectsBasicsEnvironment(
             fact: .live,
             mainQueue: .main

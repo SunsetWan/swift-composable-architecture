@@ -75,6 +75,7 @@ let effectsBasicsReducer = Reducer<
         return state.count >= 0
             ? .cancel(id: DelayID.self)
             : .none
+//        return .none // Try to comment it out to see what happened
 
     case .numberFactButtonTapped:
         state.isNumberFactRequestInFlight = true

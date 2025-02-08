@@ -119,6 +119,22 @@ class EffectsBasicsTests: XCTestCase {
             $0.count = 0
         }
     }
+
+    // This test passes, which means we have definitive proof that the delayed effect was canceled.
+    func testDecrementCancellation() async {
+        let store = TestStore(
+            initialState: EffectsBasicsState(),
+            reducer: effectsBasicsReducer,
+            environment: .unimplemented
+        )
+
+        store.send(.decrementButtonTapped) {
+            $0.count = -1
+        }
+        store.send(.incrementButtonTapped) {
+            $0.count = 0
+        }
+    }
 }
 
 extension EffectsBasicsEnvironment {

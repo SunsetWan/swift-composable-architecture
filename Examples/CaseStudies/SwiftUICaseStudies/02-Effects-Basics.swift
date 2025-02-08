@@ -61,12 +61,18 @@ let effectsBasicsReducer = Reducer<
     case .decrementButtonTapped:
         state.count -= 1
         state.numberFact = nil
+//        return state.count >= 0
+//            ? .none
+//            : .task {
+//                try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
+//                return .decrementDelayResponse
+//            }
+//            .cancellable(id: DelayID.self)
         return state.count >= 0
             ? .none
-            : .task {
-                try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
-                return .decrementDelayResponse
-            }
+            : Effect(value: .decrementDelayResponse)
+            .delay(for: 1, scheduler: environment.mainQueue)
+            .eraseToEffect()
             .cancellable(id: DelayID.self)
 
     case .incrementButtonTapped:
@@ -84,6 +90,7 @@ let effectsBasicsReducer = Reducer<
         // Return an effect that fetches a number fact from the API and returns the
         // value back to the reducer's `numberFactResponse` action.
         return .task { [count = state.count] in
+            /// - Note: it’s an effect that can only emit a single time.
             .numberFactResponse(await TaskResult { try await environment.fact.fetchAsync(count) })
         }
         //    return environment.fact.fetch(state.count)
@@ -99,11 +106,13 @@ let effectsBasicsReducer = Reducer<
         // NB: This is where we could handle the error is some way, such as showing an alert.
         state.isNumberFactRequestInFlight = false
         return .none
+
     case .decrementDelayResponse:
         if state.count < 0 {
             state.count += 1
         }
         return .none
+
     case .startTimerButtonTapped:
         state.isTimerRunning = true
         return Effect.timer(
@@ -112,9 +121,11 @@ let effectsBasicsReducer = Reducer<
             on: environment.mainQueue
         )
         .map { _ in .timerTick }
+
     case .stopTimerButtonTapped:
         state.isTimerRunning = false
         return .cancel(id: TimerID.self)
+
     case .timerTick:
         state.count += 1
         return .none

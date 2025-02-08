@@ -111,11 +111,19 @@ class EffectsBasicsTests: XCTestCase {
             environment: .unimplemented
         )
 
+        // This kind of scheduler does not execute any work scheduled on it
+        // until you explicitly advance its internal clock forward.
+        let mainQueue = DispatchQueue.test
+
+        store.environment.mainQueue = mainQueue.eraseToAnyScheduler()
+
         store.send(.decrementButtonTapped) {
             $0.count = -1
         }
 
-        await store.receive(.decrementDelayResponse, timeout: 2 * NSEC_PER_SEC) {
+        await mainQueue.advance(by: .seconds(1))
+
+        await store.receive(.decrementDelayResponse) {
             $0.count = 0
         }
     }
@@ -133,6 +141,47 @@ class EffectsBasicsTests: XCTestCase {
         }
         store.send(.incrementButtonTapped) {
             $0.count = 0
+        }
+    }
+
+    func testTimer() {
+        let mainQueue = DispatchQueue.test
+
+        let store = TestStore(
+            initialState: EffectsBasicsState(),
+            reducer: effectsBasicsReducer,
+            environment: .unimplemented
+        )
+
+        store.environment.mainQueue = mainQueue
+            .eraseToAnyScheduler()
+
+        store.send(.startTimerButtonTapped) {
+            $0.isTimerRunning = true
+        }
+
+        mainQueue.advance(by: .seconds(1))
+        store.receive(.timerTick) {
+            $0.count = 1
+        }
+
+        mainQueue.advance(by: .seconds(4))
+        store.receive(.timerTick) {
+            $0.count = 2
+        }
+        store.receive(.timerTick) {
+            $0.count = 3
+        }
+        store.receive(.timerTick) {
+            $0.count = 4
+        }
+        store.receive(.timerTick) {
+            $0.count = 5
+        }
+
+        // Tearing down that long-living effect
+        store.send(.stopTimerButtonTapped) {
+            $0.isTimerRunning = false
         }
     }
 }

@@ -144,6 +144,48 @@ class EffectsBasicsTests: XCTestCase {
         }
     }
 
+    // Use `Effect.run` to setup timer
+    func testTimerAsync() async {
+        let mainQueue = DispatchQueue.test
+
+        let store = TestStore(
+            initialState: EffectsBasicsState(),
+            reducer: effectsBasicsReducer,
+            environment: .unimplemented
+        )
+
+        store.environment.mainQueue = mainQueue
+            .eraseToAnyScheduler()
+
+        store.send(.startTimerButtonTapped) {
+            $0.isTimerRunning = true
+        }
+
+        await mainQueue.advance(by: .seconds(1))
+        await store.receive(.timerTick) {
+            $0.count = 1
+        }
+
+        await mainQueue.advance(by: .seconds(4))
+        await store.receive(.timerTick) {
+            $0.count = 2
+        }
+        await store.receive(.timerTick) {
+            $0.count = 3
+        }
+        await store.receive(.timerTick) {
+            $0.count = 4
+        }
+        await store.receive(.timerTick) {
+            $0.count = 5
+        }
+
+        // Tearing down that long-living effect
+        store.send(.stopTimerButtonTapped) {
+            $0.isTimerRunning = false
+        }
+    }
+
     func testTimer() {
         let mainQueue = DispatchQueue.test
 

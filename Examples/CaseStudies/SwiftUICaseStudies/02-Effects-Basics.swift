@@ -115,17 +115,32 @@ let effectsBasicsReducer = Reducer<
 
     case .startTimerButtonTapped:
         state.isTimerRunning = true
-        return Effect.timer(
-            id: TimerID.self,
-            every: .seconds(1),
-            on: environment.mainQueue
-        )
-        .map { _ in .timerTick }
+//        return Effect.timer(
+//            id: TimerID.self,
+//            every: .seconds(1),
+//            on: environment.mainQueue
+//        )
+//        .map { _ in .timerTick }
+        return .run { send in
+            var count = 0
+            do {
+                while true {
+                    print("[startTimerButtonTapped] while loop started")
+                    defer { count += 1 }
+                    try await environment.mainQueue.sleep(
+                        for: .milliseconds(max(50, 1_000 - count * 50))
+                    )
+                    send(.timerTick)
+                }
+            } catch {
+                print("[startTimerButtonTapped] catched error(\(error))")
+            }
+        }
+        .cancellable(id: TimerID.self)
 
     case .stopTimerButtonTapped:
         state.isTimerRunning = false
         return .cancel(id: TimerID.self)
-
     case .timerTick:
         state.count += 1
         return .none

@@ -103,6 +103,22 @@ class EffectsBasicsTests: XCTestCase {
             $0.isNumberFactRequestInFlight = false
         }
     }
+
+    func testDecrement() async {
+        let store = TestStore(
+            initialState: EffectsBasicsState(),
+            reducer: effectsBasicsReducer,
+            environment: .unimplemented
+        )
+
+        store.send(.decrementButtonTapped) {
+            $0.count = -1
+        }
+
+        await store.receive(.decrementDelayResponse, timeout: 2 * NSEC_PER_SEC) {
+            $0.count = 0
+        }
+    }
 }
 
 extension EffectsBasicsEnvironment {

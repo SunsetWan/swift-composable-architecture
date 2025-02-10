@@ -26,6 +26,7 @@ struct EffectsBasicsState: Equatable {
     var isNumberFactRequestInFlight = false
     var numberFact: String?
     var isTimerRunning = false
+    var nthPrimeProgress: Double?
 }
 
 enum EffectsBasicsAction: Equatable {
@@ -41,6 +42,10 @@ enum EffectsBasicsAction: Equatable {
     case stopTimerButtonTapped
 
     case timerTick
+
+    case nthPrimeButtonTapped
+    case nthPrimeProgress(Double)
+    case nthPrimeResponse(Int)
 }
 
 struct EffectsBasicsEnvironment {
@@ -128,7 +133,7 @@ let effectsBasicsReducer = Reducer<
                     print("[startTimerButtonTapped] while loop started")
                     defer { count += 1 }
                     try await environment.mainQueue.sleep(
-                        for: .milliseconds(max(50, 1_000 - count * 50))
+                        for: .milliseconds(max(50, 1000 - count * 50))
                     )
                     send(.timerTick)
                 }
@@ -143,6 +148,30 @@ let effectsBasicsReducer = Reducer<
         return .cancel(id: TimerID.self)
     case .timerTick:
         state.count += 1
+        return .none
+    case .nthPrimeButtonTapped:
+        return .run { [count = state.count] send in
+            var primeCount = 0
+            var prime = 2
+            while primeCount < count {
+                defer { prime += 1 }
+                if isPrime(prime) {
+                    primeCount += 1
+                } else if prime.isMultiple(of: 1000) {
+                    await send(.nthPrimeProgress(Double(primeCount) / Double(count)))
+                    await Task.yield()
+                }
+            }
+
+            await send(.nthPrimeResponse(prime - 1))
+        }
+    case let .nthPrimeProgress(progress):
+        state.nthPrimeProgress = progress
+        return .none
+
+    case let .nthPrimeResponse(prime):
+        state.numberFact = "The \(state.count)th prime is \(prime)."
+        state.nthPrimeProgress = nil
         return .none
     }
 }
@@ -200,17 +229,17 @@ struct EffectsBasicsView: View {
                     }
                 }
 
-//                Section {
-//                    Button("Compute \(viewStore.count)th prime") {
-//                        viewStore.send(.nthPrimeButtonTapped)
-//                    }
-//                    .frame(maxWidth: .infinity)
-//
-//                    if let nthPrimeProgress = viewStore.nthPrimeProgress {
-//                        ProgressView(value: nthPrimeProgress)
-//                            .progressViewStyle(.linear)
-//                    }
-//                }
+                Section {
+                    Button("Compute \(viewStore.count)th prime") {
+                        viewStore.send(.nthPrimeButtonTapped)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    if let nthPrimeProgress = viewStore.nthPrimeProgress {
+                        ProgressView(value: nthPrimeProgress)
+                            .progressViewStyle(.linear)
+                    }
+                }
 
                 Section {
                     Button("Number facts provided by numbersapi.com") {
@@ -233,7 +262,7 @@ struct EffectsBasicsView_Previews: PreviewProvider {
         NavigationView {
             EffectsBasicsView(
                 store: Store(
-                    initialState: EffectsBasicsState(),
+                    initialState: EffectsBasicsState(count: 50_001),
                     reducer: effectsBasicsReducer.debug(),
                     environment: EffectsBasicsEnvironment(
                         fact: .live,
@@ -243,4 +272,31 @@ struct EffectsBasicsView_Previews: PreviewProvider {
             )
         }
     }
+}
+
+private func isPrime(_ p: Int) -> Bool {
+    if p <= 1 { return false }
+    if p <= 3 { return true }
+    for i in 2 ... Int(sqrtf(Float(p))) {
+        if p % i == 0 { return false }
+    }
+    return true
+}
+
+private func asyncNthPrime(_ n: Int) async {
+    let start = Date()
+    var primeCount = 0
+    var prime = 2
+    while primeCount < n {
+        defer { prime += 1 }
+        if isPrime(prime) {
+            primeCount += 1
+        } else if prime.isMultiple(of: 1000) {
+            await Task.yield()
+        }
+    }
+    print(
+        "\(n)th prime", prime - 1,
+        "time", Date().timeIntervalSince(start)
+    )
 }

@@ -101,26 +101,3 @@ func foo() {
   // ∃x P(x)
   // ∃x in the set of real numbers such that x*x > 0
 }
-
-import Combine
-
-extension Effect {
-    /// Can send many effects to the reducer.
-    public static func run(
-        operation:
-        @escaping (_ send: @MainActor (Output) -> Void) async -> Void
-    ) -> Self {
-        .run { subscriber in
-            let task = Task { @MainActor in
-                await operation { output in
-                    subscriber.send(output)
-                }
-                subscriber.send(completion: .finished)
-            }
-
-            return AnyCancellable {
-                task.cancel()
-            }
-        }
-    }
-}

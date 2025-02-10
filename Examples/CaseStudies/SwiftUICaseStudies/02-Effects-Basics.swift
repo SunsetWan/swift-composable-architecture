@@ -308,3 +308,43 @@ private func asyncNthPrime(_ n: Int) async {
         "time", Date().timeIntervalSince(start)
     )
 }
+
+import Combine
+
+@MainActor
+public struct Send<Action> {
+    let send: (Action) -> Void
+
+    init(send: @escaping (Action) -> Void) {
+        self.send = send
+    }
+
+    func callAsFunction(_ action: Action) {
+        self.send(action)
+    }
+
+    func callAsFunction(_ action: Action, animation: Animation?) {
+        withAnimation(animation) {
+            self.send(action)
+        }
+    }
+}
+
+extension Effect {
+    /// Can send many effects to the reducer.
+    public static func run(
+        operation: @escaping @Sendable (_ send: Send<Output>) async -> Void
+    ) -> Self {
+        .run { subscriber in
+            let task = Task { @MainActor in
+                await operation(Send { subscriber.send($0) })
+                subscriber.send(completion: .finished)
+            }
+
+            return AnyCancellable {
+                task.cancel()
+            }
+        }
+    }
+}
+

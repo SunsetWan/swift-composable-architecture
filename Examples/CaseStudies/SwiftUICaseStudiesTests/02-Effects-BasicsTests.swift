@@ -226,6 +226,23 @@ class EffectsBasicsTests: XCTestCase {
             $0.isTimerRunning = false
         }
     }
+
+    func testNthPrime() async throws {
+        let store = TestStore(
+            initialState: EffectsBasicsState(count: 200),
+            reducer: effectsBasicsReducer,
+            environment: .unimplemented
+        )
+
+        store.send(.nthPrimeButtonTapped)
+        await store.receive(.nthPrimeProgress(0.84)) {
+            $0.nthPrimeProgress = 0.84
+        }
+        await store.receive(.nthPrimeResponse(1223)) {
+            $0.nthPrimeProgress = nil
+            $0.numberFact = "The 200th prime is 1223."
+        }
+    }
 }
 
 extension EffectsBasicsEnvironment {

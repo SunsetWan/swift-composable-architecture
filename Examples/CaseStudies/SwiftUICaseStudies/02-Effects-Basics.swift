@@ -157,7 +157,7 @@ let effectsBasicsReducer = Reducer<
                 defer { prime += 1 }
                 if isPrime(prime) {
                     primeCount += 1
-                } else if prime.isMultiple(of: 1000) {
+                } else if prime.isMultiple(of: 1_000) {
                     await send(.nthPrimeProgress(Double(primeCount) / Double(count)), animation: .default)
                     await Task.yield()
                 }
@@ -303,17 +303,12 @@ private func asyncNthPrime(_ n: Int) async {
 import Combine
 
 @MainActor
-public struct Send<Action> {
+struct Send<Action> {
     let send: (Action) -> Void
-
-    init(send: @escaping (Action) -> Void) {
-        self.send = send
-    }
-
+    
     func callAsFunction(_ action: Action) {
         self.send(action)
     }
-
     func callAsFunction(_ action: Action, animation: Animation?) {
         withAnimation(animation) {
             self.send(action)
@@ -322,8 +317,7 @@ public struct Send<Action> {
 }
 
 extension Effect {
-    /// Can send many effects to the reducer.
-    public static func run(
+    static func run(
         operation: @escaping @Sendable (_ send: Send<Output>) async -> Void
     ) -> Self {
         .run { subscriber in
@@ -331,7 +325,6 @@ extension Effect {
                 await operation(Send { subscriber.send($0) })
                 subscriber.send(completion: .finished)
             }
-
             return AnyCancellable {
                 task.cancel()
             }

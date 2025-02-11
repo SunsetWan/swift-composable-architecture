@@ -22,7 +22,7 @@ suite is written to confirm that the effect behaves in the way we expect.
 // MARK: - Feature domain
 
 struct EffectsBasicsState: Equatable {
-    var count = 50_000
+    var count = 0
     var isNumberFactRequestInFlight = false
     var numberFact: String?
     var isTimerRunning = false
@@ -158,22 +158,11 @@ let effectsBasicsReducer = Reducer<
                 if isPrime(prime) {
                     primeCount += 1
                 } else if prime.isMultiple(of: 1000) {
-//                    await MainActor.run { [primeCount] in
-//                        withAnimation {
-//                            send(.nthPrimeProgress(Double(primeCount) / Double(count)))
-//                        }
-//                    }
-                    send(.nthPrimeProgress(Double(primeCount) / Double(count)), animation: .default)
+                    await send(.nthPrimeProgress(Double(primeCount) / Double(count)), animation: .default)
                     await Task.yield()
                 }
             }
-
-//            await MainActor.run { [prime] in
-//                withAnimation {
-//                    send(.nthPrimeResponse(prime - 1))
-//                }
-//            }
-            send(.nthPrimeResponse(prime - 1), animation: .default)
+            await send(.nthPrimeResponse(prime - 1), animation: .default)
         }
     case let .nthPrimeProgress(progress):
         state.nthPrimeProgress = progress
